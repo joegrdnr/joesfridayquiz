@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Joe's Friday Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e0c;
+    --surface: #1a1814;
+    --border: #2e2b25;
+    --gold: #d4a843;
+    --gold-light: #e8c46a;
+    --gold-dim: #7a5f25;
+    --text: #f0ead8;
+    --text-muted: #8a8070;
+    --correct: #4caf7d;
+    --wrong: #e05555;
+    --radius: 4px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* ---- HEADER ---- */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    position: relative;
+  }
+
+  .header-rule {
+    width: 40px;
+    height: 2px;
+    background: var(--gold);
+    margin-bottom: 0.75rem;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    text-align: center;
+  }
+
+  header h1 span {
+    color: var(--text);
+  }
+
+  .header-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+  }
+
+  .week-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    border: 1px solid var(--border);
+    padding: 0.3rem 0.75rem;
+    margin-top: 0.75rem;
+    border-radius: var(--radius);
+  }
+
+  /* ---- MAIN LAYOUT ---- */
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* ---- SCREENS ---- */
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeIn 0.4s ease; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- INTRO ---- */
+  #intro-screen {
+    text-align: center;
+    padding-top: 3rem;
+  }
+
+  .intro-rounds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin: 2rem 0;
+  }
+
+  .round-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    color: var(--text-muted);
+    transition: all 0.2s;
+  }
+
+  .round-pill.active-round {
+    border-color: var(--gold-dim);
+    color: var(--gold);
+    background: rgba(212,168,67,0.06);
+  }
+
+  .intro-desc {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    max-width: 420px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.7;
+  }
+
+  /* ---- BUTTONS ---- */
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.9rem 2.5rem;
+    border: 1px solid var(--gold-dim);
+    background: transparent;
+    color: var(--gold);
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.2s;
+  }
+
+  .btn:hover {
+    background: var(--gold);
+    color: var(--bg);
+    border-color: var(--gold);
+  }
+
+  .btn-secondary {
+    border-color: var(--border);
+    color: var(--text-muted);
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--text-muted);
+  }
+
+  /* ---- PROGRESS ---- */
+  .progress-bar-wrap {
+    margin-bottom: 2rem;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .progress-track {
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* ---- ROUND HEADER ---- */
+  .round-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .round-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin-bottom: 0.4rem;
+  }
+
+  .round-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* ---- QUESTION ---- */
+  .question-block {
+    margin-bottom: 2.5rem;
+  }
+
+  .q-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+
+  .q-text {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 1.1rem;
+    font-weight: 500;
+  }
+
+  .options {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .option {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--surface);
+    text-align: left;
+    width: 100%;
+  }
+
+  .option:hover:not(:disabled) {
+    border-color: var(--gold-dim);
+    background: rgba(212,168,67,0.04);
+  }
+
+  .option-letter {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    min-width: 1.2rem;
+    letter-spacing: 0.05em;
+  }
+
+  .option-text {
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .option.selected {
+    border-color: var(--gold-dim);
+    background: rgba(212,168,67,0.08);
+  }
+
+  .option.selected .option-letter { color: var(--gold); }
+
+  .option.correct {
+    border-color: var(--correct);
+    background: rgba(76,175,125,0.1);
+  }
+
+  .option.correct .option-letter { color: var(--correct); }
+
+  .option.wrong {
+    border-color: var(--wrong);
+    background: rgba(224,85,85,0.1);
+  }
+
+  .option.wrong .option-letter { color: var(--wrong); }
+
+  .option:disabled { cursor: default; }
+
+  /* ---- QUESTION IMAGE ---- */
+  .q-image-wrap {
+    margin-bottom: 1.1rem;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    max-height: 280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .q-image-wrap img {
+    width: 100%;
+    max-height: 280px;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Picture round — image is bigger and more prominent */
+  .picture-round .q-image-wrap {
+    max-height: 340px;
+    border-color: var(--gold-dim);
+  }
+
+  .picture-round .q-image-wrap img {
+    max-height: 340px;
+  }
+
+  .picture-round .q-text {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* ---- NAV ---- */
+  .quiz-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    gap: 1rem;
+  }
+
+  .nav-score {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+  }
+
+  .nav-score span {
+    color: var(--gold);
+    font-weight: 500;
+  }
+
+  /* ---- RESULTS ---- */
+  #results-screen {
+    text-align: center;
+    padding-top: 2rem;
+  }
+
+  .result-headline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 900;
+    color: var(--gold);
+    margin-bottom: 0.5rem;
+  }
+
+  .result-sub {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 2.5rem;
+  }
+
+  .score-display {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid var(--border);
+    padding: 2rem 3rem;
+    margin-bottom: 2.5rem;
+    background: var(--surface);
+    border-radius: var(--radius);
+    position: relative;
+  }
+
+  .score-display::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 1px);
+    pointer-events: none;
+    opacity: 0.4;
+  }
+
+  .score-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 5rem;
+    font-weight: 900;
+    color: var(--gold);
+    line-height: 1;
+  }
+
+  .score-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+  }
+
+  .round-breakdown {
+    text-align: left;
+    margin-bottom: 2.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+
+  .breakdown-row:last-child { border-bottom: none; }
+
+  .breakdown-round {
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .breakdown-score {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--gold);
+  }
+
+  .result-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* ---- HIGH SCORE PHOTO ---- */
+  .high-score-photo {
+    margin: 0 auto 2rem;
+    border: 2px solid var(--gold);
+    border-radius: var(--radius);
+    overflow: hidden;
+    max-width: 260px;
+    box-shadow: 0 0 40px rgba(212,168,67,0.2);
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow {
+    from { box-shadow: 0 0 20px rgba(212,168,67,0.15); }
+    to { box-shadow: 0 0 50px rgba(212,168,67,0.4); }
+  }
+
+  .high-score-photo img {
+    width: 100%;
+    display: block;
+  }
+
+  .high-score-caption {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 500px) {
+    main { padding: 1.5rem 1rem 3rem; }
+    .score-number { font-size: 3.5rem; }
+    .quiz-nav { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-rule"></div>
+  <h1>Joe's <span>Friday</span> Quiz</h1>
+  <p class="header-sub">25 Questions &bull; 5 Rounds &bull; Every Friday</p>
+  <div class="week-badge" id="week-badge">Loading...</div>
+</header>
+
+<main>
+
+  <!-- INTRO -->
+  <div id="intro-screen" class="screen active">
+    <p class="intro-desc">This week's five rounds, auto-selected for your Friday night. Good luck — you'll need it.</p>
+    <div class="intro-rounds" id="intro-rounds"></div>
+    <button class="btn" onclick="startQuiz()">Start Quiz</button>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz-screen" class="screen">
+    <div class="progress-bar-wrap">
+      <div class="progress-meta">
+        <span id="progress-label">Round 1 of 5</span>
+        <span id="progress-count">Q1 / 25</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="round-header">
+      <div class="round-label" id="round-label">Round 1</div>
+      <div class="round-title" id="round-title">General Knowledge</div>
+    </div>
+
+    <div id="questions-container"></div>
+
+    <div class="quiz-nav">
+      <div class="nav-score">Score so far: <span id="live-score">0</span></div>
+      <button class="btn" id="next-btn" onclick="nextRound()" style="display:none">Next Round →</button>
+      <button class="btn" id="finish-btn" onclick="showResults()" style="display:none">See Results →</button>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results-screen" class="screen">
+    <p class="result-headline" id="result-headline">Not bad!</p>
+    <p class="result-sub" id="result-sub"></p>
+    <div id="high-score-photo" style="display:none">
+      <div class="high-score-photo">
+        <img src="joe.png" alt="The quiz master himself">
+      </div>
+      <p class="high-score-caption">⭐ Certified genius — the quiz master approves ⭐</p>
+    </div>
+    <div class="score-display">
+      <div class="score-number" id="final-score">0</div>
+      <div class="score-label">out of 25</div>
+    </div>
+    <div class="round-breakdown" id="round-breakdown"></div>
+    <div class="result-actions">
+      <button class="btn" onclick="restartQuiz()">Play Again</button>
+      <button class="btn btn-secondary" onclick="shareResult()">Share Score</button>
+    </div>
+  </div>
+
+</main>
+
+<script src="questions.js"></script>
+<script>
+// ─── STATE ───────────────────────────────────────────────
+let weekRounds = [];
+let currentRoundIndex = 0;
+let currentRoundQuestions = [];
+let userAnswers = [];
+let roundScores = [];
+let totalScore = 0;
+let answered = 0;
+
+const ALL_CATEGORIES = [
+  "General Knowledge", "Sport", "Music", "Film & TV",
+  "News & Current Affairs", "Food & Drink", "Science & Nature",
+  "History", "Picture Round", "Themed Round"
+];
+
+// ─── WEEK CALCULATION ────────────────────────────────────
+function getWeekNumber() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  return Math.ceil(((now - start) / 86400000 + start.getDay() + 1) / 7);
+}
+
+function getWeekRounds() {
+  const week = getWeekNumber();
+  const year = new Date().getFullYear();
+  const seed = week + year * 52;
+  // Deterministic shuffle based on week number
+  const cats = [...ALL_CATEGORIES];
+  for (let i = cats.length - 1; i > 0; i--) {
+    const j = (seed * (i + 7) + i * 13) % (i + 1);
+    [cats[i], cats[j]] = [cats[j], cats[i]];
+  }
+  return cats.slice(0, 5);
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+function init() {
+  const week = getWeekNumber();
+  const year = new Date().getFullYear();
+  document.getElementById('week-badge').textContent = `Week ${week} · ${year}`;
+
+  weekRounds = getWeekRounds();
+
+  // Render round pills
+  const pillsEl = document.getElementById('intro-rounds');
+  ALL_CATEGORIES.forEach(cat => {
+    const pill = document.createElement('div');
+    pill.className = 'round-pill' + (weekRounds.includes(cat) ? ' active-round' : '');
+    pill.textContent = cat;
+    pillsEl.appendChild(pill);
+  });
+}
+
+// ─── START ────────────────────────────────────────────────
+function startQuiz() {
+  currentRoundIndex = 0;
+  totalScore = 0;
+  roundScores = [];
+  userAnswers = [];
+  showScreen('quiz-screen');
+  loadRound();
+}
+
+function loadRound() {
+  const roundName = weekRounds[currentRoundIndex];
+  const pool = QUESTIONS[roundName] || [];
+
+  // Pick 5 questions for this week (deterministic by week)
+  const week = getWeekNumber();
+  const seed = week * 31 + currentRoundIndex * 7;
+  const shuffled = [...pool];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = (seed * (i + 3)) % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  currentRoundQuestions = shuffled.slice(0, 5);
+  answered = 0;
+
+  document.getElementById('round-label').textContent = `Round ${currentRoundIndex + 1} of 5`;
+  document.getElementById('round-title').textContent = roundName;
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('finish-btn').style.display = 'none';
+
+  renderQuestions();
+  updateProgress();
+}
+
+function renderQuestions() {
+  const container = document.getElementById('questions-container');
+  container.innerHTML = '';
+  const letters = ['A', 'B', 'C', 'D'];
+  const isPictureRound = weekRounds[currentRoundIndex] === 'Picture Round';
+
+  currentRoundQuestions.forEach((q, qi) => {
+    const globalQ = currentRoundIndex * 5 + qi + 1;
+    const block = document.createElement('div');
+    block.className = 'question-block' + (isPictureRound ? ' picture-round' : '');
+    block.id = `q-block-${qi}`;
+
+    const imageHtml = q.image ? `
+      <div class="q-image-wrap">
+        <img src="${q.image}" alt="Question image" loading="lazy" onerror="this.parentElement.style.display='none'">
+      </div>` : '';
+
+    block.innerHTML = `
+      <div class="q-number">Question ${globalQ}</div>
+      ${imageHtml}
+      <div class="q-text">${q.question}</div>
+      <div class="options" id="opts-${qi}">
+        ${q.options.map((opt, oi) => `
+          <button class="option" onclick="selectAnswer(${qi}, ${oi})" id="opt-${qi}-${oi}">
+            <span class="option-letter">${letters[oi]}</span>
+            <span class="option-text">${opt}</span>
+          </button>
+        `).join('')}
+      </div>
+    `;
+    container.appendChild(block);
+  });
+}
+
+// ─── ANSWER ──────────────────────────────────────────────
+function selectAnswer(qi, oi) {
+  const q = currentRoundQuestions[qi];
+  const opts = document.querySelectorAll(`#opts-${qi} .option`);
+  opts.forEach(o => o.disabled = true);
+
+  const selected = document.getElementById(`opt-${qi}-${oi}`);
+  selected.classList.add('selected');
+
+  if (oi === q.answer) {
+    selected.classList.add('correct');
+    totalScore++;
+    document.getElementById('live-score').textContent = totalScore;
+  } else {
+    selected.classList.add('wrong');
+    opts[q.answer].classList.add('correct');
+  }
+
+  answered++;
+  updateProgress();
+
+  if (answered === 5) {
+    setTimeout(() => {
+      if (currentRoundIndex < 4) {
+        document.getElementById('next-btn').style.display = 'inline-block';
+      } else {
+        document.getElementById('finish-btn').style.display = 'inline-block';
+      }
+    }, 400);
+  }
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────
+function nextRound() {
+  roundScores.push({ name: weekRounds[currentRoundIndex], score: totalScore - roundScores.reduce((a,r)=>a+r.score,0) });
+  currentRoundIndex++;
+  loadRound();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateProgress() {
+  const total = 25;
+  const done = currentRoundIndex * 5 + answered;
+  document.getElementById('progress-fill').style.width = `${(done / total) * 100}%`;
+  document.getElementById('progress-count').textContent = `Q${done + 1} / ${total}`;
+  document.getElementById('progress-label').textContent = `Round ${currentRoundIndex + 1} of 5`;
+}
+
+// ─── RESULTS ──────────────────────────────────────────────
+function showResults() {
+  roundScores.push({ name: weekRounds[currentRoundIndex], score: totalScore - roundScores.reduce((a,r)=>a+r.score,0) });
+
+  document.getElementById('final-score').textContent = totalScore;
+
+  const headlines = [
+    [0,5,'Better luck next week.'],
+    [6,10,'Room to grow.'],
+    [11,15,'Not bad!'],
+    [16,20,'Solid effort.'],
+    [21,24,'Sharp as a tack.'],
+    [25,25,'Perfect score. Legend.']
+  ];
+  const [,, hl] = headlines.find(([lo,hi]) => totalScore >= lo && totalScore <= hi) || ['','','Well done.'];
+  document.getElementById('result-headline').textContent = hl;
+  document.getElementById('result-sub').textContent = `You scored ${totalScore} out of 25 this week.`;
+
+  if (totalScore > 20) {
+    document.getElementById('high-score-photo').style.display = 'block';
+  }
+
+  const breakdown = document.getElementById('round-breakdown');
+  breakdown.innerHTML = roundScores.map(r => `
+    <div class="breakdown-row">
+      <span class="breakdown-round">${r.name}</span>
+      <span class="breakdown-score">${r.score} / 5</span>
+    </div>
+  `).join('');
+
+  showScreen('results-screen');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function restartQuiz() {
+  showScreen('intro-screen');
+}
+
+function shareResult() {
+  const week = getWeekNumber();
+  const text = `Joe's Friday Quiz — Week ${week}\nScore: ${totalScore}/25 🎯\njoesfridayquiz.github.io`;
+  if (navigator.share) {
+    navigator.share({ text });
+  } else {
+    navigator.clipboard.writeText(text).then(() => alert('Score copied to clipboard!'));
+  }
+}
+
+// ─── UTILS ───────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+init();
+</script>
+</body>
+</html>
